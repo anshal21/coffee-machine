@@ -3,7 +3,7 @@ package workerpool
 import (
 	"sync"
 
-	"github.com/coffee-machine/lib/models"
+	"github.com/anshal21/coffee-machine/lib/models"
 )
 
 // Request contains the parameters to initialize a worker pool
@@ -121,3 +121,4 @@ func (w *workerpool) Abort() {
 
 func (w *workerpool) WaitForCompletion() {
 	w.wg.Wait()
+}

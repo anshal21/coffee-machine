@@ -2,40 +2,41 @@ package expressions
 
 import (
 	"fmt"
-	"sync"
 
-	"github.com/anshal21coffee-machine/lib"
-	"github.com/anshal21coffee-machine/lib/errors"
+	"github.com/anshal21/coffee-machine/lib"
+	"github.com/anshal21/coffee-machine/lib/errors"
+	"github.com/anshal21/coffee-machine/lib/models"
 )
 
+// Node represents a node of a syntax tree
+// Node can either be an Operand or Operator node
 type node struct {
-	Token    *Token
-	Children []*node
+	Token      *Token
+	LeftChild  *node
+	RightChild *node
 }
 
+// SyntaxTree represents the AST composed of nodes
 type syntaxTree struct {
 	Root *node
 }
 
 type evaluationResult struct {
-	Type  DataType
-	Value *Value
-}
-
-type Value struct {
-	Number *float64
-	String *string
-	Bool   *bool
+	Type  models.DataType
+	Value *models.Value
 }
 
 const (
 	_treeLevelPrefix = "----"
 )
 
+// Evaluate traverses through the sytanx tree with provided set of variable values
+// and evaluate the expression value
 func (t *syntaxTree) Evaluate(values map[string]interface{}) (*evaluationResult, error) {
 	return t.evaluteHelper(t.Root, values)
 }
 
+// Print is a utility method to visualize the AST
 func (t *syntaxTree) Print() {
 	fmt.Printf("_\n")
 	inorderTraversal(t.Root, _treeLevelPrefix, 1)
@@ -50,61 +51,48 @@ func inorderTraversal(node *node, prefix string, level int) {
 		nextPrefix = nextPrefix + _treeLevelPrefix
 	}
 	if node.Token.Type == Operator {
-		inorderTraversal(node.Children[0], nextPrefix, level+1)
+		inorderTraversal(node.LeftChild, nextPrefix, level+1)
 	}
 	fmt.Printf("|\n|%v> %v [%v]\n", prefix, node.Token.Value, node.Token.Type)
 	if node.Token.Type == Operator {
-		inorderTraversal(node.Children[1], nextPrefix, level+1)
+		inorderTraversal(node.RightChild, nextPrefix, level+1)
 	}
 }
 
 func (t *syntaxTree) evaluteHelper(curr *node, values map[string]interface{}) (*evaluationResult, error) {
 	switch curr.Token.Type {
+	case Variable:
+		return resolveVariableValue(curr.Token, values)
 	case String:
 		return &evaluationResult{
-			Type: DataTypeString,
-			Value: &Value{
+			Type: models.DataTypeString,
+			Value: &models.Value{
 				String: lib.StrPtr(curr.Token.Value.(string)),
 			},
 		}, nil
 	case Number:
 		return &evaluationResult{
-			Type: DataTypeNumber,
-			Value: &Value{
+			Type: models.DataTypeNumber,
+			Value: &models.Value{
 				Number: lib.Float64Ptr(curr.Token.Value.(float64)),
 			},
 		}, nil
 	case Bool:
 		return &evaluationResult{
-			Type: DataTypeBool,
-			Value: &Value{
+			Type: models.DataTypeBool,
+			Value: &models.Value{
 				Bool: lib.BoolPtr(curr.Token.Value.(bool)),
 			},
 		}, nil
-	case Variable:
-		return resolveVariableValue(curr.Token, values)
 	case Operator:
-		if len(curr.Children) != 2 {
-			return nil, fmt.Errorf("Not enough operand present for operator %v", curr.Token.Value)
+		res1, err := t.evaluteHelper(curr.LeftChild, values)
+		if err != nil {
+			return nil, err
 		}
-		wg := sync.WaitGroup{}
-		wg.Add(2)
-		var err1, err2 error
-		var res1, res2 *evaluationResult
-		func() {
-			res1, err1 = t.evaluteHelper(curr.Children[0], values)
-			wg.Done()
-		}()
-		func() {
-			res2, err2 = t.evaluteHelper(curr.Children[1], values)
-			wg.Done()
-		}()
-		wg.Wait()
-		if err1 != nil {
-			return nil, err1
-		}
-		if err2 != nil {
-			return nil, err2
+
+		res2, err := t.evaluteHelper(curr.RightChild, values)
+		if err != nil {
+			return nil, err
 		}
 
 		return applyOperator(res1, res2, curr.Token)
@@ -121,29 +109,29 @@ func resolveVariableValue(token *Token, values map[string]interface{}) (*evaluat
 	switch val.(type) {
 	case string:
 		return &evaluationResult{
-			Type: DataTypeString,
-			Value: &Value{
+			Type: models.DataTypeString,
+			Value: &models.Value{
 				String: lib.StrPtr(val.(string)),
 			},
 		}, nil
 	case float64:
 		return &evaluationResult{
-			Type: DataTypeNumber,
-			Value: &Value{
+			Type: models.DataTypeNumber,
+			Value: &models.Value{
 				Number: lib.Float64Ptr(val.(float64)),
 			},
 		}, nil
 	case int:
 		return &evaluationResult{
-			Type: DataTypeNumber,
-			Value: &Value{
+			Type: models.DataTypeNumber,
+			Value: &models.Value{
 				Number: lib.Float64Ptr(float64(val.(int))),
 			},
 		}, nil
 	case bool:
 		return &evaluationResult{
-			Type: DataTypeBool,
-			Value: &Value{
+			Type: models.DataTypeBool,
+			Value: &models.Value{
 				Bool: lib.BoolPtr(val.(bool)),
 			},
 		}, nil
@@ -189,17 +177,17 @@ func applyOperator(res1 *evaluationResult, res2 *evaluationResult, operation *To
 
 func add(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
 	switch res1.Type {
-	case DataTypeString:
+	case models.DataTypeString:
 		return &evaluationResult{
-			Type: DataTypeString,
-			Value: &Value{
+			Type: models.DataTypeString,
+			Value: &models.Value{
 				String: lib.StrPtr(fmt.Sprintf("%v%v", *res1.Value.String, *res2.Value.String)),
 			},
 		}, nil
-	case DataTypeNumber:
+	case models.DataTypeNumber:
 		return &evaluationResult{
-			Type: DataTypeNumber,
-			Value: &Value{
+			Type: models.DataTypeNumber,
+			Value: &models.Value{
 				Number: lib.Float64Ptr(*res1.Value.Number + *res2.Value.Number),
 			},
 		}, nil
@@ -209,10 +197,10 @@ func add(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, err
 
 func sub(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
 	switch res1.Type {
-	case DataTypeNumber:
+	case models.DataTypeNumber:
 		return &evaluationResult{
-			Type: DataTypeNumber,
-			Value: &Value{
+			Type: models.DataTypeNumber,
+			Value: &models.Value{
 				Number: lib.Float64Ptr(*res1.Value.Number - *res2.Value.Number),
 			},
 		}, nil
@@ -222,10 +210,10 @@ func sub(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, err
 
 func mul(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
 	switch res1.Type {
-	case DataTypeNumber:
+	case models.DataTypeNumber:
 		return &evaluationResult{
-			Type: DataTypeNumber,
-			Value: &Value{
+			Type: models.DataTypeNumber,
+			Value: &models.Value{
 				Number: lib.Float64Ptr(*res1.Value.Number * *res2.Value.Number),
 			},
 		}, nil
@@ -235,13 +223,13 @@ func mul(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, err
 
 func div(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
 	switch res1.Type {
-	case DataTypeNumber:
+	case models.DataTypeNumber:
 		if *res2.Value.Number == 0 {
 			return nil, fmt.Errorf("encounter 0 value as denominatior")
 		}
 		return &evaluationResult{
-			Type: DataTypeNumber,
-			Value: &Value{
+			Type: models.DataTypeNumber,
+			Value: &models.Value{
 				Number: lib.Float64Ptr(*res1.Value.Number / *res2.Value.Number),
 			},
 		}, nil
@@ -251,17 +239,17 @@ func div(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, err
 
 func lt(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
 	switch res1.Type {
-	case DataTypeString:
+	case models.DataTypeString:
 		return &evaluationResult{
-			Type: DataTypeBool,
-			Value: &Value{
+			Type: models.DataTypeBool,
+			Value: &models.Value{
 				Bool: lib.BoolPtr(*res1.Value.String < *res2.Value.String),
 			},
 		}, nil
-	case DataTypeNumber:
+	case models.DataTypeNumber:
 		return &evaluationResult{
-			Type: DataTypeBool,
-			Value: &Value{
+			Type: models.DataTypeBool,
+			Value: &models.Value{
 				Bool: lib.BoolPtr(*res1.Value.Number < *res2.Value.Number),
 			},
 		}, nil
@@ -282,17 +270,17 @@ func gt(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, erro
 
 func lte(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
 	switch res1.Type {
-	case DataTypeString:
+	case models.DataTypeString:
 		return &evaluationResult{
-			Type: DataTypeBool,
-			Value: &Value{
+			Type: models.DataTypeBool,
+			Value: &models.Value{
 				Bool: lib.BoolPtr(*res1.Value.String <= *res2.Value.String),
 			},
 		}, nil
-	case DataTypeNumber:
+	case models.DataTypeNumber:
 		return &evaluationResult{
-			Type: DataTypeBool,
-			Value: &Value{
+			Type: models.DataTypeBool,
+			Value: &models.Value{
 				Bool: lib.BoolPtr(*res1.Value.Number <= *res2.Value.Number),
 			},
 		}, nil
@@ -313,24 +301,24 @@ func gte(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, err
 
 func equal(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
 	switch res1.Type {
-	case DataTypeString:
+	case models.DataTypeString:
 		return &evaluationResult{
-			Type: DataTypeBool,
-			Value: &Value{
+			Type: models.DataTypeBool,
+			Value: &models.Value{
 				Bool: lib.BoolPtr(*res1.Value.String == *res2.Value.String),
 			},
 		}, nil
-	case DataTypeNumber:
+	case models.DataTypeNumber:
 		return &evaluationResult{
-			Type: DataTypeBool,
-			Value: &Value{
+			Type: models.DataTypeBool,
+			Value: &models.Value{
 				Bool: lib.BoolPtr(*res1.Value.Number == *res2.Value.Number),
 			},
 		}, nil
-	case DataTypeBool:
+	case models.DataTypeBool:
 		return &evaluationResult{
-			Type: DataTypeBool,
-			Value: &Value{
+			Type: models.DataTypeBool,
+			Value: &models.Value{
 				Bool: lib.BoolPtr(*res1.Value.Bool == *res2.Value.Bool),
 			},
 		}, nil
@@ -340,10 +328,10 @@ func equal(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, e
 
 func or(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
 	switch res1.Type {
-	case DataTypeBool:
+	case models.DataTypeBool:
 		return &evaluationResult{
-			Type: DataTypeBool,
-			Value: &Value{
+			Type: models.DataTypeBool,
+			Value: &models.Value{
 				Bool: lib.BoolPtr(*res1.Value.Bool || *res2.Value.Bool),
 			},
 		}, nil
@@ -353,10 +341,10 @@ func or(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, erro
 
 func and(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
 	switch res1.Type {
-	case DataTypeBool:
+	case models.DataTypeBool:
 		return &evaluationResult{
-			Type: DataTypeBool,
-			Value: &Value{
+			Type: models.DataTypeBool,
+			Value: &models.Value{
 				Bool: lib.BoolPtr(*res1.Value.Bool && *res2.Value.Bool),
 			},
 		}, nil
@@ -364,6 +352,6 @@ func and(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, err
 	return nil, incompatibleOperationError("&&", res1.Type)
 }
 
-func incompatibleOperationError(op string, operandType DataType) *errors.Error {
+func incompatibleOperationError(op string, operandType models.DataType) *errors.Error {
 	return errors.New(ErrIncompatibleOperation, fmt.Errorf("operation '%v' is not compatible with '%v' type", op, operandType))
 }

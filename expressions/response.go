@@ -1,28 +1,11 @@
 package expressions
 
-type Response struct {
-	Value Value
-	Type  DataType
-}
+import "github.com/anshal21/coffee-machine/lib/models"
 
-type DataType int
-
-const (
-	DataTypeUnknown DataType = iota
-	DataTypeBool
-	DataTypeNumber
-	DataTypeString
-)
-
-func (d DataType) String() string {
-	switch d {
-	case DataTypeBool:
-		return "bool"
-	case DataTypeNumber:
-		return "number"
-	case DataTypeString:
-		return "string"
-	default:
-		return "unknown"
-	}
+// EvaluationResponse contains the response of an expression evaluation
+// It contains the resultant value of the expression and the DataType associated
+// with it
+type EvaluationResponse struct {
+	Value models.Value
+	Type  models.DataType
 }

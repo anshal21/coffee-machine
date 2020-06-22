@@ -1,10 +1,16 @@
 package expressions
 
+/*
+	state is a struct to hold the states of lexer
+	each state is defined by the current token
+	and a valid set of transitions to the next token
+*/
 type state struct {
 	currentState    TokenType
 	nextValidStates map[TokenType]struct{}
 }
 
+// set of states to define lexer DFA
 var stateTransitions = map[TokenType]*state{
 	None: &state{
 		currentState: None,

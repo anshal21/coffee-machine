@@ -1,7 +1,10 @@
 package expressions
 
+// Expression is an interface to represent an expression
+// It exposes Evaluate method to evaluate an expression
+// and a Visualise method to display the execution plan
 type Expression interface {
-	Evaluate(request EvaluationRequest) (*Response, error)
+	Evaluate(request EvaluationRequest) (*EvaluationResponse, error)
 	Visualise() error
 }
 
@@ -10,6 +13,9 @@ type expression struct {
 	abstractSyntaxtTree *syntaxTree
 }
 
+// New is a constructor to instantiate a new Expression
+// example usage:
+// expr, err := New("a > b")
 func New(expr string) (Expression, error) {
 	lexer := NewLexer()
 	tokens, err := lexer.Lex(expr)
@@ -28,12 +34,12 @@ func New(expr string) (Expression, error) {
 	}, nil
 }
 
-func (e *expression) Evaluate(request EvaluationRequest) (*Response, error) {
+func (e *expression) Evaluate(request EvaluationRequest) (*EvaluationResponse, error) {
 	res, err := e.abstractSyntaxtTree.Evaluate(request.Variables)
 	if err != nil {
 		return nil, err
 	}
-	return &Response{
+	return &EvaluationResponse{
 		Value: *res.Value,
 		Type:  res.Type,
 	}, nil

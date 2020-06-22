@@ -1,9 +1,12 @@
 package expressions
 
+// TokenType is a type to represent different token type allowed in an expression
 type TokenType int
 
+// TokenValue is a type to hold value of a token
 type TokenValue interface{}
 
+// Set of allowed tokens in an expression
 const (
 	None TokenType = iota
 	Variable

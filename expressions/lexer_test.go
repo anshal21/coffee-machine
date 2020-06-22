@@ -3,23 +3,30 @@ package expressions
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"runtime/trace"
 	"testing"
 )
 
 func Test_Lex(t *testing.T) {
 	//lexer := lexer{}
-	expr := ` age  + 20 / 10 / age `
+	//expr := ` age  + 20 / 10 / age `
+	expr := `hello`
 	//expr := ` evaluated == false`
 	evalautor, err := New(expr)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-
+	f, _ := os.Create("./trace.out")
+	defer f.Close()
+	trace.Start(f)
+	defer trace.Stop()
 	res, err := evalautor.Evaluate(EvaluationRequest{
 		Variables: map[string]interface{}{
-			"age":       1,
-			"evaluated": true,
+			"requests_made":      99.0,
+			"requests_succeeded": 90.0,
+			"hello":              100,
 		},
 	})
 	fmt.Println(err)

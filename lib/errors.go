@@ -1,7 +1,7 @@
 package lib
 
 import (
-	"github.com/coffee-machine/lib/errors"
+	"github.com/anshal21/coffee-machine/lib/errors"
 )
 
 const (

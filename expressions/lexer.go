@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/anshal21coffee-machine/lib/errors"
+	"github.com/anshal21/coffee-machine/lib/errors"
 )
 
 var (
@@ -31,6 +31,8 @@ func init() {
 	_DecimalRegex, _ = regexp.Compile("^-?[0-9][0-9]*(.[0-9]+)?$")
 }
 
+// Lexer is an interface exposes a Lex function, that tokenizes the given
+// input expression based on some grammar
 type Lexer interface {
 	Lex(expression string) ([]*Token, error)
 }
@@ -38,6 +40,7 @@ type Lexer interface {
 type lexer struct {
 }
 
+// NewLexer is a constructor to instantiate a Lexer
 func NewLexer() Lexer {
 	return &lexer{}
 }

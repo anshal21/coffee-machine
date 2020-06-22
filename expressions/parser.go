@@ -3,13 +3,16 @@ package expressions
 import (
 	"fmt"
 
-	"github.com/anshal21coffee-machine/lib/errors"
+	"github.com/anshal21/coffee-machine/lib/errors"
 )
 
+// Parser interface exposes Parse function, that parses
+// a stream of token and generates an AST
 type Parser interface {
 	Parse(tokens []*Token) (*syntaxTree, error)
 }
 
+// NewParser is a constructor to instantiate a Parser
 func NewParser() Parser {
 	return &parser{}
 }
@@ -18,12 +21,6 @@ type parser struct {
 }
 
 func (p *parser) Parse(tokens []*Token) (*syntaxTree, error) {
-	// wrappedTokens := []*Token{&Token{Type: LeftParenthesis, Value: "("}}
-	// wrappedTokens = append(wrappedTokens, tokens...)
-	// wrappedTokens = append(wrappedTokens, &Token{Type: RightParenthesis, Value: ")"})
-
-	// tokens = wrappedTokens
-
 	root := &node{}
 	pos := 0
 	err := parserHelper(tokens, &pos, root)
@@ -38,7 +35,6 @@ func (p *parser) Parse(tokens []*Token) (*syntaxTree, error) {
 func parserHelper(tokens []*Token, pos *int, root *node) error {
 	operandStack := newStack()
 	operatorStack := newStack()
-	postfix := make([]*Token, 0, len(tokens))
 
 	buildExpr := func(op *Token) error {
 		operand1 := toNode(operandStack.Top())
@@ -50,11 +46,9 @@ func parserHelper(tokens []*Token, pos *int, root *node) error {
 				fmt.Errorf("missing operands for operator %v at position %v", op.Value, op.Index))
 		}
 		operandStack.Push(&node{
-			Token: op,
-			Children: []*node{
-				operand2,
-				operand1,
-			},
+			Token:      op,
+			LeftChild:  operand2,
+			RightChild: operand1,
 		})
 		return nil
 	}
@@ -68,7 +62,6 @@ OuterLoop:
 			operandStack.Push(&node{
 				Token: val,
 			})
-			//postfix = append(postfix, val)
 		case Operator:
 			for {
 				topEle := toToken(operatorStack.Top())
@@ -81,7 +74,6 @@ OuterLoop:
 				if err != nil {
 					return err
 				}
-				//postfix = append(postfix, topEle)
 			}
 		case RightParenthesis:
 			for {
@@ -97,7 +89,6 @@ OuterLoop:
 				if err != nil {
 					return err
 				}
-				//postfix = append(postfix, topEle)
 			}
 		}
 
@@ -112,7 +103,6 @@ OuterLoop:
 		if err != nil {
 			return err
 		}
-		postfix = append(postfix, topEle)
 		operatorStack.Pop()
 	}
 
