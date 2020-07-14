@@ -22,7 +22,7 @@ func Test_Lex(t *testing.T) {
 	defer f.Close()
 	trace.Start(f)
 	defer trace.Stop()
-	res, err := evalautor.Evaluate(EvaluationRequest{
+	res, err := evalautor.Evaluate(&EvaluationRequest{
 		Variables: map[string]interface{}{
 			"requests_made":      99.0,
 			"requests_succeeded": 90.0,
@@ -61,7 +61,7 @@ func Benchmark_TestLexer(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		evalautor.Evaluate(EvaluationRequest{
+		evalautor.Evaluate(&EvaluationRequest{
 			Variables: parameters,
 		})
 	}

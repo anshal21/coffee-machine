@@ -2,7 +2,7 @@ package coffeemachine
 
 import (
 	"github.com/anshal21/coffee-machine/expressions"
-	"github.com/anshal21/coffee-machine/models"
+	"github.com/anshal21/coffee-machine/lib/models"
 )
 
 const (
@@ -13,10 +13,10 @@ const (
 type Rule struct {
 	ID        string
 	Predicate expressions.Expression
-	PostEvals []*RuleOutput
+	PostEvals []*RulePostEval
 }
 
-type RuleOutput struct {
+type RulePostEval struct {
 	ID        string
 	Type      string
 	Const     string
@@ -50,11 +50,17 @@ type RuleEngineRequest struct {
 type EvaluationOutput struct {
 	ID    string
 	Value models.Value
+	Type  models.DataType
+}
+
+type RuleOutput struct {
+	ID        string
+	PostEvals []*EvaluationOutput
 }
 
 type RuleEngineResponse struct {
 	RulesEvaluated     int
 	RulesEvaluatedTrue int
-	Outputs            map[string]EvaluationOutput
+	Outputs            []*RuleOutput
 	EvaluatedRules     []string
 }

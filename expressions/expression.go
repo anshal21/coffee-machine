@@ -4,7 +4,7 @@ package expressions
 // It exposes Evaluate method to evaluate an expression
 // and a Visualise method to display the execution plan
 type Expression interface {
-	Evaluate(request EvaluationRequest) (*EvaluationResponse, error)
+	Evaluate(request *EvaluationRequest) (*EvaluationResponse, error)
 	Visualise() error
 }
 
@@ -34,7 +34,7 @@ func New(expr string) (Expression, error) {
 	}, nil
 }
 
-func (e *expression) Evaluate(request EvaluationRequest) (*EvaluationResponse, error) {
+func (e *expression) Evaluate(request *EvaluationRequest) (*EvaluationResponse, error) {
 	res, err := e.abstractSyntaxtTree.Evaluate(request.Variables)
 	if err != nil {
 		return nil, err
