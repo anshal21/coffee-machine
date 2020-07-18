@@ -7,9 +7,9 @@ type stack struct {
 	index    int
 }
 
-func newStack() *stack {
+func newStack(capacity int) *stack {
 	return &stack{
-		elements: make([]interface{}, 0),
+		elements: make([]interface{}, 0, capacity),
 		index:    -1,
 	}
 }

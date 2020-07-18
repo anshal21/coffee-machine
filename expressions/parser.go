@@ -33,8 +33,8 @@ func (p *parser) Parse(tokens []*Token) (*syntaxTree, error) {
 }
 
 func parserHelper(tokens []*Token, pos *int, root *node) error {
-	operandStack := newStack()
-	operatorStack := newStack()
+	operandStack := newStack(len(tokens))
+	operatorStack := newStack(len(tokens))
 
 	buildExpr := func(op *Token) error {
 		operand1 := toNode(operandStack.Top())

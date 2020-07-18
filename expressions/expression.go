@@ -11,6 +11,7 @@ type Expression interface {
 type expression struct {
 	infix               string
 	abstractSyntaxtTree *syntaxTree
+	evaluator           Evaluator
 }
 
 // New is a constructor to instantiate a new Expression
@@ -31,11 +32,12 @@ func New(expr string) (Expression, error) {
 	return &expression{
 		infix:               expr,
 		abstractSyntaxtTree: ast,
+		evaluator:           NewEvaluator(),
 	}, nil
 }
 
 func (e *expression) Evaluate(request *EvaluationRequest) (*EvaluationResponse, error) {
-	res, err := e.abstractSyntaxtTree.Evaluate(request.Variables)
+	res, err := e.evaluator.Evaluate(e.abstractSyntaxtTree, request.Variables)
 	if err != nil {
 		return nil, err
 	}

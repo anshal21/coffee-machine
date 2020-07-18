@@ -47,6 +47,14 @@ var stateTransitions = map[TokenType]*state{
 			RightParenthesis: {},
 		},
 	},
+	Bool: &state{
+		currentState: Bool,
+		nextValidStates: map[TokenType]struct{}{
+			Operator:         {},
+			Eol:              {},
+			RightParenthesis: {},
+		},
+	},
 	Operator: &state{
 		currentState: Operator,
 		nextValidStates: map[TokenType]struct{}{
