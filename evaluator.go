@@ -1,25 +1,41 @@
 package coffeemachine
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/anshal21/coffee-machine/expressions"
 	"github.com/anshal21/coffee-machine/lib/models"
 )
 
+// Evaluator is an interface to evaluate a rule-graph against
+// given set of parameter values
+// It exposes and Evaluate method that evaluates the rule-graph
 type Evaluator interface {
-	Evaluate(ctx context.Context, req *RuleEngineRequest, graph *RuleGraph) (*RuleEngineResponse, error)
+	Evaluate(req *RuleEngineRequest) (*RuleEngineResponse, error)
+}
+
+// NewEvaluator is a constructor for Evaluator
+// It takes a rule-graph as an input and returns an instance of Evaluator
+func NewEvaluator(ruleGraph *RuleGraph) Evaluator {
+	return &evaluator{
+		ruleGraph: ruleGraph,
+	}
 }
 
 type evaluator struct {
+	ruleGraph *RuleGraph
 }
 
-func (e *evaluator) Evaluate(ctx context.Context, req *RuleEngineRequest, graph *RuleGraph) (*RuleEngineResponse, error) {
+// Evaluate method evaluates the rule-graph against the rule-graph
+// It traverses the graph in the dependency order and evaluates the nodes
+// for the expressions associated
+// It early stops, i.e doesn't evaluate a node if some of it dependecy evaluates to false
+func (e *evaluator) Evaluate(req *RuleEngineRequest) (*RuleEngineResponse, error) {
 	response := &RuleEngineResponse{}
 
 	outCh := make(chan *RuleOutput, 100)
-	err := e.dfs(req, graph.Root, outCh, &evaluationStats{})
+	// TODO: this can be improved by pre-computing the execution order using topo-sort
+	err := e.dfs(req, e.ruleGraph.Root, outCh, &evaluationStats{})
 	if err != nil {
 		return nil, err
 	}
@@ -39,8 +55,6 @@ type evaluationStats struct {
 }
 
 func (e *evaluator) dfs(req *RuleEngineRequest, node *Node, outCh chan<- *RuleOutput, stats *evaluationStats) error {
-	fmt.Println("Rule ID: ", node.Rule.ID)
-	printJSON(node)
 	res, err := node.Rule.Predicate.Evaluate(&expressions.EvaluationRequest{
 		Variables: req.Variables,
 	})
@@ -54,12 +68,14 @@ func (e *evaluator) dfs(req *RuleEngineRequest, node *Node, outCh chan<- *RuleOu
 	}
 
 	if *res.Value.Bool {
-		postEvals, err := e.evaluatePostEvals(req, node.Rule.PostEvals)
-		if err != nil {
-			return err
+		if node.Rule.ID != _rootNodeID {
+			postEvals, err := e.evaluatePostEvals(req, node.Rule.PostEvals)
+			if err != nil {
+				return err
+			}
+			postEvals.ID = node.Rule.ID
+			outCh <- postEvals
 		}
-		postEvals.ID = node.Rule.ID
-		outCh <- postEvals
 
 		for _, edge := range node.Relations {
 			err = e.dfs(req, edge.Destination, outCh, stats)

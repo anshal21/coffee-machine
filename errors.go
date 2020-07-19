@@ -6,5 +6,6 @@ import (
 
 // Set of error codes thrown by the expression evaluation
 const (
+	// ErrInvalidRuleSet represents some error in the provided ruleset
 	ErrInvalidRuleSet errors.ErrCode = "ErrInvalidRuleSet"
 )

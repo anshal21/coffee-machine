@@ -1,0 +1,5 @@
+- Add a loader interface and a watcher to update rule-changes in runtime
+- Add a DAG validator for rules
+- Add more tests
+- Add Benchmark tests
+- Profile for optimisations

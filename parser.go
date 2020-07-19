@@ -19,12 +19,47 @@ var (
 	_rootNodePredicate, _ = expressions.New("1 == 1")
 )
 
+// Parser is an interface that expose a Parse function
+// Parse function accepts an io.Reader interface to read
+// the rule-set and generates a rule-graph for it
 type Parser interface {
 	Parse(reader io.Reader) (*RuleGraph, error)
 }
 
+// NewParser is a constructor for Parser
+func NewParser() Parser {
+	return &parser{}
+}
+
 type parser struct{}
 
+// Parse function takes a rule-set as input and generates
+// a rule-graph for the same
+// Sample format for the rule-graph is as follows, please read
+// README.md for more details
+// {
+// 	"id": "some_ruleset",
+// "predicates": {
+// 	"P1": "a > b"
+// 	},
+// 	"rules": {
+// 		"R1": {
+// 			"predicate": "Predicate:P1",
+// 			"post_evals": [
+// 				{
+// 					"id": "output_1",
+// 					"type": "EXPR",
+// 					"value": "a + b"
+// 				},
+// 				{
+// 					"id": "output_1",
+// 					"type": "CONST",
+// 					"value": "action_1"
+// 				}
+// 			]
+// 		}
+// 	}
+// }
 func (p *parser) Parse(reader io.Reader) (*RuleGraph, error) {
 	data := struct {
 		ID         string            `json:"id"`
