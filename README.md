@@ -15,6 +15,7 @@ expressions is a library to evaluate logical and mathematical expressions provid
   evaluable.Evaluate()
 ```
 ```
+Output:
 {
   "Value": {
     "Number": 64,
@@ -29,6 +30,7 @@ expressions is a library to evaluate logical and mathematical expressions provid
   evaluable.Visualize()
 ```
 ```
+Output:
 _
 |
 |----------------------------> a [Variable]
@@ -61,7 +63,15 @@ _
 
 When do I need a rule-engine?
 --
+A rule-engine can be leveraged by the systems, that
+- Depend on business rules/logic that require changes very often
+- Deal with huge number of business rules
+- Contain business-rules that deal with large number or conditional branching making
+ them hard to change and maintain in the code
+- Have a requirement for non-developers to be able to configure and change rule-sets
 
+Concepts
+--
 
 
 
