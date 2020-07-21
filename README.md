@@ -10,7 +10,7 @@ What is coffee-machine/expressions
 expressions is a library to evaluate logical and mathematical expressions provided as strings. It is used by coffee-machine to evaluate the rules, but is not limited to it, the library can directly be used for expression evaluation, without any integration with the rule-engine
 
 ```go
-  expr := `age  + 20`
+  expr := `a * a + b * b - 2 * a * b `
   evaluable, _ := New(expr)
   evaluable.Evaluate()
 ```
