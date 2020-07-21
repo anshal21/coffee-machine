@@ -13,11 +13,12 @@ import (
 func Test_Lex(t *testing.T) {
 	//lexer := lexer{}
 	//expr := ` age  + 20 / 10 / age `
-	expr := `(1 + 2)`
+	expr := `a * a + b * b - 2 * a * b `
 	//expr := ` evaluated == false`
 	evalautor, err := New(expr)
 	if err != nil {
 		fmt.Println(err)
+		assert.Equal(t, 1, 2)
 		return
 	}
 	f, _ := os.Create("./trace.out")
@@ -27,9 +28,8 @@ func Test_Lex(t *testing.T) {
 	evalautor.Visualise()
 	res, err := evalautor.Evaluate(&EvaluationRequest{
 		Variables: map[string]interface{}{
-			"requests_made":      99.0,
-			"requests_succeeded": 90.0,
-			"hello":              100,
+			"a": 10,
+			"b": 2,
 		},
 	})
 	fmt.Println(err)
