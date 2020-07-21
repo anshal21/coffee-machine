@@ -12,7 +12,12 @@ expressions is a library to evaluate logical and mathematical expressions provid
 ```go
   expr := `a * a + b * b - 2 * a * b `
   evaluable, _ := New(expr)
-  evaluable.Evaluate()
+  evaluable.Evaluate(&EvaluationRequest{
+		Variables: map[string]interface{}{
+			"a": 10,
+			"b": 2,
+		},
+	})
 ```
 ```
 Output:
