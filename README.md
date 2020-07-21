@@ -77,11 +77,12 @@ It's a list of predicates. A predicate is a logical expression, It is used by ru
 
 #### rules
 It is a list of different business rules. A rule is made of two components
-###### predicates
+###### predicate
 predicate holds the business condition for the rule
 ###### post_evals
 post_evals is a set of output that rule is supposed to return if the associated condition evaluates to true
 A post_evals can either be a CONST ( constant string ) or an EXPR ( logical or mathematical expression ) in itself
+
 
 #### realtions
 It is a list of dependency edges between different rules. Each has some property associated, currently one such provided property is
