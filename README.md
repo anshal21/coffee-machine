@@ -98,7 +98,7 @@ How do I create a rule-set?
 --
 
 An example rule-set
-```
+```json
 {
   "id": "some_ruleset",
   "predicates": {
@@ -151,6 +151,7 @@ An example rule-set
   ]
 }
 ```
+
 
 checkout tests package for more
 
