@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/anshal21/coffee-machine.svg?branch=master)](https://travis-ci.org/anshal21/coffee-machine)
+
 coffee-machine
 ====
 
