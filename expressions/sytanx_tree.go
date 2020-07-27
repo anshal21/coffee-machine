@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/anshal21/coffee-machine/lib"
 	"github.com/anshal21/coffee-machine/lib/errors"
 	"github.com/anshal21/coffee-machine/lib/models"
 )
@@ -38,7 +37,8 @@ type Evaluator interface {
 }
 
 type evaluator struct {
-	resultPool sync.Pool
+	resultPool      sync.Pool
+	operatorFactory OperatorFactory
 }
 
 func NewEvaluator() Evaluator {
@@ -50,6 +50,7 @@ func NewEvaluator() Evaluator {
 				}
 			},
 		},
+		operatorFactory: NewOperatorFactory(),
 	}
 }
 
@@ -163,169 +164,26 @@ func inorderTraversal(node *node, prefix string, level int) {
 // Operations
 func (e *evaluator) applyOperator(res1 *evaluationResult, res2 *evaluationResult, operation *Token) (res *evaluationResult, err error) {
 
-	if res1.Type != res2.Type {
-		return nil, errors.New(ErrIncompatibleOperation, fmt.Errorf("cannot apply '%v' operation on type '%v' and '%v' at position '%v'", operation.Value, res1.Type, res2.Type, operation.Index))
+	op, err := e.operatorFactory.Get(operation.Value.(string))
+	if err != nil {
+		return nil, errors.New(ErrUnsupportedOperation, fmt.Errorf("%v %v at position %v", err.Error(), operation.Value, operation.Index))
 	}
 
-	switch operation.Value.(string) {
-	case "+":
-		res, err = e.add(res1, res2)
-		e.returnResultToPool(res2)
-	case "-":
-		res, err = e.sub(res1, res2)
-		e.returnResultToPool(res2)
-	case "*":
-		res, err = e.mul(res1, res2)
-		e.returnResultToPool(res2)
-	case "/":
-		res, err = e.div(res1, res2)
-		e.returnResultToPool(res2)
-	case "<":
-		res, err = e.lt(res1, res2)
-		e.returnResultToPool(res1, res2)
-	case ">":
-		res, err = e.gt(res1, res2)
-		e.returnResultToPool(res1, res2)
-	case "<=":
-		res, err = e.lte(res1, res2)
-		e.returnResultToPool(res1, res2)
-	case ">=":
-		res, err = e.gte(res1, res2)
-		e.returnResultToPool(res1, res2)
-	case "==":
-		res, err = e.equal(res1, res2)
-		e.returnResultToPool(res1, res2)
-	case "||":
-		res, err = e.or(res1, res2)
-		e.returnResultToPool(res2)
-	case "&&":
-		res, err = e.and(res1, res2)
-		e.returnResultToPool(res2)
-	default:
-		return nil, errors.New(ErrUnsupportedOperation, fmt.Errorf("unsupported operator %v at position %v", operation.Value, operation.Index))
-	}
+	response := e.resultPool.Get().(*evaluationResult)
+
+	err = op(res1, res2, response)
+
+	e.returnResultToPool(res1, res2)
 
 	if err != nil {
+		e.returnResultToPool(response)
 		if e := err.(*errors.Error); e.Code == ErrIncompatibleOperation {
 			err = errors.New(ErrIncompatibleOperation, fmt.Errorf("%v at position %v", e.Msg, operation.Index))
 		}
-	}
-
-	return
-}
-
-func (e *evaluator) add(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
-	switch res1.Type {
-	case models.DataTypeString:
-		res1.Value.String = lib.StrPtr(fmt.Sprintf("%v%v", *res1.Value.String, *res2.Value.String))
-		return res1, nil
-	case models.DataTypeNumber:
-		res1.Value.Number = lib.Float64Ptr(*res1.Value.Number + *res2.Value.Number)
-		return res1, nil
-	}
-	return nil, incompatibleOperationError("+", res1.Type)
-}
-
-func (e *evaluator) sub(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
-	switch res1.Type {
-	case models.DataTypeNumber:
-		res1.Value.Number = lib.Float64Ptr(*res1.Value.Number - *res2.Value.Number)
-		return res1, nil
-	}
-	return nil, incompatibleOperationError("-", res1.Type)
-}
-
-func (e *evaluator) mul(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
-	switch res1.Type {
-	case models.DataTypeNumber:
-		res1.Value.Number = lib.Float64Ptr(*res1.Value.Number * *res2.Value.Number)
-		return res1, nil
-	}
-	return nil, incompatibleOperationError("*", res1.Type)
-}
-
-func (e *evaluator) div(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
-	switch res1.Type {
-	case models.DataTypeNumber:
-		if *res2.Value.Number == 0 {
-			return nil, fmt.Errorf("encountered 0 value as denominatior")
-		}
-		res1.Value.Number = lib.Float64Ptr(*res1.Value.Number / *res2.Value.Number)
-		return res1, nil
-	}
-	return nil, incompatibleOperationError("/", res1.Type)
-}
-
-func (e *evaluator) lt(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
-	switch res1.Type {
-	case models.DataTypeString:
-		return e.boolEvaluationResult(*res1.Value.String < *res2.Value.String), nil
-	case models.DataTypeNumber:
-		return e.boolEvaluationResult(*res1.Value.Number < *res2.Value.Number), nil
-	}
-	return nil, incompatibleOperationError("<", res1.Type)
-}
-
-func (e *evaluator) gt(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
-	res, err := e.lt(res2, res1)
-	if err != nil {
-		if err.(*errors.Error).Code == ErrIncompatibleOperation {
-			err = incompatibleOperationError(">", res1.Type)
-		}
 		return nil, err
 	}
-	return res, nil
-}
 
-func (e *evaluator) lte(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
-	switch res1.Type {
-	case models.DataTypeString:
-		return e.boolEvaluationResult(*res1.Value.String <= *res2.Value.String), nil
-	case models.DataTypeNumber:
-		return e.boolEvaluationResult(*res1.Value.Number <= *res2.Value.Number), nil
-	}
-	return nil, incompatibleOperationError("<=", res1.Type)
-}
-
-func (e *evaluator) gte(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
-	res, err := e.lte(res2, res1)
-	if err != nil {
-		if err.(*errors.Error).Code == ErrIncompatibleOperation {
-			err = incompatibleOperationError(">=", res1.Type)
-		}
-		return nil, err
-	}
-	return res, nil
-}
-
-func (e *evaluator) equal(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
-	switch res1.Type {
-	case models.DataTypeString:
-		return e.boolEvaluationResult(*res1.Value.String == *res2.Value.String), nil
-	case models.DataTypeNumber:
-		return e.boolEvaluationResult(*res1.Value.Number == *res2.Value.Number), nil
-	case models.DataTypeBool:
-		return e.boolEvaluationResult(*res1.Value.Bool == *res2.Value.Bool), nil
-	}
-	return nil, incompatibleOperationError("==", res1.Type)
-}
-
-func (e *evaluator) or(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
-	switch res1.Type {
-	case models.DataTypeBool:
-		res1.Value.Bool = lib.BoolPtr(*res1.Value.Bool || *res2.Value.Bool)
-		return res1, nil
-	}
-	return nil, incompatibleOperationError("||", res1.Type)
-}
-
-func (e *evaluator) and(res1 *evaluationResult, res2 *evaluationResult) (*evaluationResult, error) {
-	switch res1.Type {
-	case models.DataTypeBool:
-		res1.Value.Bool = lib.BoolPtr(*res1.Value.Bool && *res2.Value.Bool)
-		return res1, nil
-	}
-	return nil, incompatibleOperationError("&&", res1.Type)
+	return response, nil
 }
 
 func incompatibleOperationError(op string, operandType models.DataType) *errors.Error {
