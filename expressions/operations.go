@@ -10,10 +10,10 @@ import (
 
 type OperationResult = evaluationResult
 
-type Operator func(operandA, operandB, output *OperationResult) error
+type OperatorFunc func(operandA, operandB, output *OperationResult) error
 
 type OperatorFactory interface {
-	Get(operatorToken string) (Operator, error)
+	Get(operatorToken string) (OperatorFunc, error)
 }
 
 func NewOperatorFactory() OperatorFactory {
@@ -23,7 +23,7 @@ func NewOperatorFactory() OperatorFactory {
 type operatorFactory struct {
 }
 
-func (o *operatorFactory) Get(operatorToken string) (Operator, error) {
+func (o *operatorFactory) Get(operatorToken string) (OperatorFunc, error) {
 	op, err := getOperator(operatorToken)
 	if err == nil {
 		return op, nil
@@ -31,7 +31,7 @@ func (o *operatorFactory) Get(operatorToken string) (Operator, error) {
 	return nil, errors.New(ErrUnsupportedOperation, fmt.Errorf("unsupported operator"))
 }
 
-func getOperator(operatorToken string) (Operator, error) {
+func getOperator(operatorToken string) (OperatorFunc, error) {
 	switch operatorToken {
 	case "+":
 		return add, nil
@@ -60,7 +60,7 @@ func getOperator(operatorToken string) (Operator, error) {
 	}
 }
 
-func sameOperand(op Operator, operatorToken string) Operator {
+func sameOperand(op OperatorFunc, operatorToken string) OperatorFunc {
 	return func(operandA, operandB, output *OperationResult) error {
 		if operandA.Type != operandB.Type {
 			return errors.New(ErrIncompatibleOperation, fmt.Errorf("cannot apply '%v' operation on type '%v' and '%v'", operatorToken, operandA.Type, operandB.Type))

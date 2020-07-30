@@ -7,6 +7,8 @@ import (
 	"runtime/trace"
 	"testing"
 
+	"github.com/anshal21/coffee-machine/lib"
+	"github.com/anshal21/coffee-machine/lib/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,19 +34,17 @@ func Test_Lex(t *testing.T) {
 			"b": 2,
 		},
 	})
-	fmt.Println(err)
-	printJSON(res)
 
-	assert.Equal(t, 1, 2)
-	// tokens, err := lexer.Lex(expr)
-	// fmt.Println(err)
-	// parser := &parser{}
-	// res, err := parser.Parse(tokens)
-	// fmt.Println(res, err)
-	// EulerTraversal(res.Root)
-	// r, _ := res.Evaluate()
+	expectedRes := &EvaluationResponse{
+		Type: models.DataTypeNumber,
+		Value: models.Value{
+			Number: lib.Float64Ptr(64),
+		},
+	}
 
-	// printJSON(r)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedRes, res)
+
 }
 
 func printJSON(val interface{}) {
