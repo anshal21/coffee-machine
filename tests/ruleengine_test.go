@@ -2,6 +2,7 @@ package tests
 
 import (
 	"bytes"
+	"sort"
 	"testing"
 
 	coffeemachine "github.com/anshal21/coffee-machine"
@@ -11,6 +12,12 @@ import (
 )
 
 func Test_SampleRule(t *testing.T) {
+
+	sortSlice := func(outputs []*coffeemachine.RuleOutput) {
+		sort.Slice(outputs, func(i, j int) bool {
+			return outputs[i].ID < outputs[j].ID
+		})
+	}
 
 	tests := []struct {
 		name    string
@@ -147,6 +154,8 @@ func Test_SampleRule(t *testing.T) {
 			if test.err != nil {
 				assert.Error(t, err)
 			} else {
+				sortSlice(test.res.Outputs)
+				sortSlice(res.Outputs)
 				assert.Equal(t, test.res, res)
 			}
 		})
