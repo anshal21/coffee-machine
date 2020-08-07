@@ -9,9 +9,9 @@ import (
 )
 
 var (
-	_VariableRegex  *regexp.Regexp
-	_DecimalRegex   *regexp.Regexp
-	_ValidOperators = map[string]struct{}{
+	_VariableRegex        *regexp.Regexp
+	_DecimalRegex         *regexp.Regexp
+	_ValidGlobalOperators = map[string]struct{}{
 		"<":  {},
 		">":  {},
 		">=": {},
@@ -40,11 +40,23 @@ type Lexer interface {
 }
 
 type lexer struct {
+	localOperators map[string]struct{}
 }
 
 // NewLexer is a constructor to instantiate a Lexer
 func NewLexer() Lexer {
 	return &lexer{}
+}
+
+func NewLexerWithUDFs(ops ...UDF) Lexer {
+	localOperators := make(map[string]struct{})
+	for _, op := range ops {
+		localOperators[op.Token] = struct{}{}
+	}
+
+	return &lexer{
+		localOperators: localOperators,
+	}
 }
 
 func (l *lexer) Lex(expression string) ([]*Token, error) {
@@ -64,7 +76,7 @@ func (l *lexer) Lex(expression string) ([]*Token, error) {
 		}
 
 		expressionStream.Rewind()
-		nextToken, err := getNextToken(expressionStream)
+		nextToken, err := l.getNextToken(expressionStream)
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +94,7 @@ func (l *lexer) Lex(expression string) ([]*Token, error) {
 	return tokens, nil
 }
 
-func getNextToken(s *stream) (*Token, error) {
+func (l *lexer) getNextToken(s *stream) (*Token, error) {
 	index := s.Position()
 	c := s.GetNext()
 	s.Rewind()
@@ -98,6 +110,13 @@ func getNextToken(s *stream) (*Token, error) {
 			return &Token{
 				Type:  Bool,
 				Value: b,
+				Index: index,
+			}, nil
+		}
+		if l.isValidOperator(token) {
+			return &Token{
+				Type:  Operator,
+				Value: token,
 				Index: index,
 			}, nil
 		}
@@ -119,13 +138,6 @@ func getNextToken(s *stream) (*Token, error) {
 				Index: index,
 			}, nil
 		}
-		if isValidOperator(token) {
-			return &Token{
-				Type:  Operator,
-				Value: token,
-				Index: index,
-			}, nil
-		}
 		return nil, errors.New(ErrInvalidExpression, fmt.Errorf("unrecognized token %v at position %v", token, index))
 	}
 
@@ -139,9 +151,10 @@ func isValidNumber(s string) bool {
 	return _DecimalRegex.MatchString(s)
 }
 
-func isValidOperator(s string) bool {
-	_, ok := _ValidOperators[s]
-	return ok
+func (l *lexer) isValidOperator(s string) bool {
+	_, ok := _ValidGlobalOperators[s]
+	_, ok2 := l.localOperators[s]
+	return ok || ok2
 }
 
 func isValidBool(s string) bool {

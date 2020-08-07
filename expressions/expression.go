@@ -36,6 +36,24 @@ func New(expr string) (Expression, error) {
 	}, nil
 }
 
+func NewExpressionsWithUDFs(expr string, ops ...UDF) (Expression, error) {
+	lexer := NewLexerWithUDFs(ops...)
+	tokens, err := lexer.Lex(expr)
+	if err != nil {
+		return nil, err
+	}
+	parser := NewParser()
+	ast, err := parser.Parse(tokens)
+	if err != nil {
+		return nil, err
+	}
+	return &expression{
+		infix:               expr,
+		abstractSyntaxtTree: ast,
+		evaluator:           NewEvaluatorWithUDFs(ops...),
+	}, nil
+}
+
 func (e *expression) Evaluate(request *EvaluationRequest) (*EvaluationResponse, error) {
 	res, err := e.evaluator.Evaluate(e.abstractSyntaxtTree, request.Variables)
 	if err != nil {

@@ -10,6 +10,11 @@ import (
 
 type OperationResult = evaluationResult
 
+type UDF struct {
+	Token    string
+	BinaryOp OperatorFunc
+}
+
 type OperatorFunc func(operandA, operandB, output *OperationResult) error
 
 type OperatorFactory interface {
@@ -20,10 +25,27 @@ func NewOperatorFactory() OperatorFactory {
 	return &operatorFactory{}
 }
 
+func NewOperatorFactoryWithUDFs(ops ...UDF) OperatorFactory {
+	customOperator := make(map[string]OperatorFunc)
+
+	for _, op := range ops {
+		customOperator[op.Token] = op.BinaryOp
+	}
+
+	return &operatorFactory{
+		customOperator: customOperator,
+	}
+}
+
 type operatorFactory struct {
+	customOperator map[string]OperatorFunc
 }
 
 func (o *operatorFactory) Get(operatorToken string) (OperatorFunc, error) {
+	if op, ok := o.customOperator[operatorToken]; ok {
+		return op, nil
+	}
+
 	op, err := getOperator(operatorToken)
 	if err == nil {
 		return op, nil

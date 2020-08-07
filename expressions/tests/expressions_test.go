@@ -15,6 +15,7 @@ func Test_Expressions(t *testing.T) {
 		expression  string
 		variables   map[string]interface{}
 		outputValue interface{}
+		udfs        []expressions.UDF
 		outputType  models.DataType
 		err         error
 	}{
@@ -41,12 +42,38 @@ func Test_Expressions(t *testing.T) {
 			outputValue: float64(220),
 			outputType:  models.DataTypeNumber,
 		},
+		{
+			name:       "user_defined_function",
+			expression: "a MY_OP b",
+			variables: map[string]interface{}{
+				"a": 10,
+				"b": 20,
+			},
+			udfs: []expressions.UDF{
+				{
+					Token: "MY_OP",
+					BinaryOp: func(operandA, operandB, output *expressions.OperationResult) error {
+						output.Type = operandA.Type
+						output.Value.Number = lib.Float64Ptr(10*(*operandA.Value.Number) + 2*(*operandB.Value.Number))
+						return nil
+					},
+				},
+			},
+			outputValue: float64(140),
+			outputType:  models.DataTypeNumber,
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			expectedRes := getExpectedResponse(test.outputType, test.outputValue)
 			evalautor, err := expressions.New(test.expression)
+
+			if test.udfs != nil {
+				evalautor, err = expressions.NewExpressionsWithUDFs(test.expression, test.udfs...)
+				assert.NoError(t, err)
+			}
+
 			if test.err == nil {
 				assert.NoError(t, err)
 				res, err := evalautor.Evaluate(&expressions.EvaluationRequest{
@@ -55,6 +82,7 @@ func Test_Expressions(t *testing.T) {
 				if test.err != nil {
 					assert.Error(t, err)
 				} else {
+					assert.NoError(t, err)
 					assert.Equal(t, expectedRes, res)
 				}
 			} else {

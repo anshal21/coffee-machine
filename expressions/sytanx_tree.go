@@ -54,6 +54,19 @@ func NewEvaluator() Evaluator {
 	}
 }
 
+func NewEvaluatorWithUDFs(ops ...UDF) Evaluator {
+	return &evaluator{
+		resultPool: sync.Pool{
+			New: func() interface{} {
+				return &evaluationResult{
+					Value: &models.Value{},
+				}
+			},
+		},
+		operatorFactory: NewOperatorFactoryWithUDFs(ops...),
+	}
+
+}
 func (e *evaluator) Evaluate(tree *syntaxTree, values map[string]interface{}) (*evaluationResult, error) {
 	return e.evaluteHelper(tree.Root, values)
 }
